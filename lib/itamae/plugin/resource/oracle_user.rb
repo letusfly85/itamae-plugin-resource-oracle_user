@@ -5,7 +5,7 @@ module Itamae
   module Plugin
     module Resource
       class OracleUser < Itamae::Resource::Base
-        define_attribute :action, default: :create_user
+        define_attribute :action, default: :create_schema
 
         define_attribute :loginuser, type: String, default_name: false
         define_attribute :loginpass, type: String, default_name: false
@@ -40,20 +40,31 @@ EOS
 
                 results = @client.exec(@query)
 
-            rescue Mysql2::Error => me
-                Itamae::Logger.info me.message
+            rescue OCIError => oe
+                Itamae::Logger.warn "query failed...#{@query}" 
+                Itamae::Logger.warn oe.message
             end
 
             if attributes.with_grants
                 action_grants2schema(options)
             end
+
+            Itamae::Logger.info @query
         end
 
         def action_grants2schema(options)
             attributes.user_grants.each do |privilige|
                 @query = "grant #{privilige} to #{attributes.username}"
 
-                results = @client.query(@query)
+                begin
+                    results = @client.exec(@query)
+
+                rescue OCIError => oe
+                    Itamae::Logger.warn "query failed...#{@query}" 
+                    Itamae::Logger.warn oe.message
+                end
+            
+                Itamae::Logger.info @query
             end
         end
 
@@ -63,9 +74,18 @@ EOS
 alter user #{attributes.username} quota #{quota_set[:limit]} on #{quota_set[:tablespace_name]}"
 EOS
 
-                results = @client.query(@query)
+                begin
+                    results = @client.exec(@query)
+
+                rescue OCIError => oe
+                    Itamae::Logger.warn "query failed...#{@query}" 
+                    Itamae::Logger.warn oe.message
+                end
+            
+                Itamae::Logger.info @query
             end
         end
       end
+    end
   end
 end
