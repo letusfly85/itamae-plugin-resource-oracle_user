@@ -68,6 +68,26 @@ EOS
             end
         end
 
+        def action_revoke_from_schema(options)
+            attributes.user_grants.each do |privilige|
+                @query = "revoke #{privilige} from #{attributes.username}"
+
+                begin
+                    results = @client.exec(@query)
+
+                rescue OCIError => oe
+                    Itamae::Logger.warn "query failed...#{@query}" 
+                    Itamae::Logger.warn oe.message
+                end
+            
+                Itamae::Logger.info @query
+            end
+        end
+
+        def action_create_role(options)
+            #TODO
+        end
+
         def action_quota2schema(options)
             attributes.user_quota.each do |quota_set|
                 @query =<<-EOS
